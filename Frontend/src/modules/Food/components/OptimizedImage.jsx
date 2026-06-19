@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { getCachedImage, cacheImage } from '@food/utils/imageDbCache'
 
 /**
  * OptimizedImage Component
  * 
  * Features:
+ * - Persistent IndexedDB Caching (loads from local memory Blob with 0 network calls once cached)
  * - High-speed native lazy loading (loading="lazy")
  * - Responsive srcset for different screen sizes
  * - WebP/AVIF format support with fallback
@@ -27,9 +29,49 @@ const OptimizedImage = React.memo(({
   onError,
   ...props
 }) => {
+  const [cachedUrl, setCachedUrl] = useState(null)
   const [isLoaded, setIsLoaded] = useState(priority)
   const [hasError, setHasError] = useState(false)
   const imgRef = useRef(null)
+
+  // Retrieve cached image from IndexedDB on mount/src change
+  useEffect(() => {
+    let active = true
+    let createdUrl = null
+
+    const checkCache = async () => {
+      if (!src) return
+
+      try {
+        const cached = await getCachedImage(src)
+        if (!active) {
+          if (cached) URL.revokeObjectURL(cached)
+          return
+        }
+
+        if (cached) {
+          setCachedUrl(cached)
+          setIsLoaded(true)
+          createdUrl = cached
+        } else {
+          setCachedUrl(null)
+          // Cache in background
+          cacheImage(src)
+        }
+      } catch (e) {
+        setCachedUrl(null)
+      }
+    }
+
+    checkCache()
+
+    return () => {
+      active = false
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl)
+      }
+    }
+  }, [src])
 
   // Check if image URL supports optimization (external URLs)
   const supportsOptimization = (imageSrc) => {
@@ -103,7 +145,7 @@ const OptimizedImage = React.memo(({
     )
   }
 
-  const imageSrc = hasError ? 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23e5e7eb" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle"%3EImage not found%3C/text%3E%3C/svg%3E' : src
+  const imageSrc = hasError ? 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23e5e7eb" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle"%3EImage not found%3C/text%3E%3C/svg%3E' : (cachedUrl || src)
 
   return (
     <div className={`relative overflow-hidden ${className}`} ref={imgRef}>
@@ -131,8 +173,8 @@ const OptimizedImage = React.memo(({
 
       {/* Actual Image - Rendered immediately so browser HTML pre-parser starts pre-fetching, and lazy loads natively */}
       <picture className="absolute inset-0 w-full h-full">
-        {/* WebP source for modern browsers */}
-        {webPSrcSet && (
+        {/* WebP source for modern browsers - only generate if not loading from IndexedDB Blob */}
+        {!cachedUrl && webPSrcSet && (
           <source
             srcSet={webPSrcSet}
             sizes={sizes}
@@ -143,8 +185,8 @@ const OptimizedImage = React.memo(({
         {/* Fallback to original format */}
         <motion.img
           src={imageSrc}
-          srcSet={srcSet}
-          sizes={supportsOptimization(imageSrc) ? sizes : undefined}
+          srcSet={cachedUrl ? undefined : srcSet}
+          sizes={cachedUrl ? undefined : (supportsOptimization(imageSrc) ? sizes : undefined)}
           alt={alt}
           className={`w-full h-full ${objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : ''} ${priority || isLoaded ? 'opacity-100' : 'opacity-0'} ${!priority && 'transition-opacity duration-300'}`}
           loading={priority ? 'eager' : 'lazy'}

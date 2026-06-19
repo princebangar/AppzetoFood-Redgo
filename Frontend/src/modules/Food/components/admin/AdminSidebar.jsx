@@ -123,9 +123,24 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
         debugError("Error fetching sidebar badges:", error)
       }
     }
+
+    const handleBadgeRefresh = (e) => {
+      // Optimistically decrement instantly, then confirm via API
+      const key = e?.detail?.decrement
+      if (key) {
+        setBadges(prev => ({ ...prev, [key]: Math.max(0, (prev[key] || 0) - 1) }))
+      }
+      // Always re-fetch from backend to sync real count
+      fetchBadges()
+    }
+
     fetchBadges()
     const timer = setInterval(fetchBadges, 60000)
-    return () => clearInterval(timer)
+    window.addEventListener('sidebar-badge-refresh', handleBadgeRefresh)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('sidebar-badge-refresh', handleBadgeRefresh)
+    }
   }, [])
 
   const getBadgeCount = (label = "", path = "") => {
@@ -133,7 +148,6 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     const p = path?.toLowerCase() || ""
 
     if (l.includes("food approval")) return badges.foodApprovals
-    if (l === "foods") return badges.foods
     if (l === "restaurants" || l.includes("new joining request")) return badges.restaurants
     if (l.includes("restaurant complaints")) return badges.restaurantComplaints
     if (p.includes("orders/pending")) return badges.orders
@@ -144,7 +158,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     if (l.includes("earning addon history")) return badges.earningAddons
     if (l.includes("safety emergency reports")) return badges.safetyReports
     if (l === "deliveryman" && !p.includes("join-request")) return badges.deliveryPartners // expandable parent
-    if (l.includes("join-request")) return badges.deliveryPartners
+    if (l.includes("join request") || l.includes("join-request") || p.includes("join-request")) return badges.deliveryPartners
     if (l === "user feedback" || p.includes("contact-messages")) return badges.contactMessages
     if (l.includes("support tickets")) return badges.supportTickets || (l.includes("delivery") ? badges.deliverySupportTickets : badges.userSupportTickets)
     return 0

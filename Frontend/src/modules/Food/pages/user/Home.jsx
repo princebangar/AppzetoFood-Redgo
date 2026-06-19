@@ -241,6 +241,7 @@ const RestaurantImageCarousel = React.memo(
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loadedBySrc, setLoadedBySrc] = useState({});
     const [isImageUnavailable, setIsImageUnavailable] = useState(false);
+    const [loadedIndices, setLoadedIndices] = useState(new Set([0]));
     const touchStartX = useRef(0);
     const touchEndX = useRef(0);
     const isSwiping = useRef(false);
@@ -298,9 +299,25 @@ const RestaurantImageCarousel = React.memo(
     // Reset transient image state when restaurant or source list changes.
     useEffect(() => {
       setCurrentIndex(0);
+      setLoadedIndices(new Set([0]));
       setIsTransitioning(true);
       setIsImageUnavailable(slideItems.length === 0);
     }, [restaurant?.id, restaurant?.slug, restaurant?.updatedAt, slideItems.length]);
+
+    // Tracks loaded indices for lazy loading
+    useEffect(() => {
+      if (infiniteSlides.length === 0) return;
+      setLoadedIndices((prev) => {
+        const next = new Set(prev);
+        const adjacent = [
+          (currentIndex - 1 + infiniteSlides.length) % infiniteSlides.length,
+          currentIndex,
+          (currentIndex + 1) % infiniteSlides.length,
+        ];
+        adjacent.forEach((idx) => next.add(idx));
+        return next;
+      });
+    }, [currentIndex, infiniteSlides.length]);
 
     // Handle touch events for swipe
     const handleTouchStart = (e) => {
@@ -351,29 +368,31 @@ const RestaurantImageCarousel = React.memo(
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
           {infiniteSlides.map((item, idx) => {
-            // Performance Optimization: Only render the current, next, and previous slides 
+            const shouldLoad = loadedIndices.has(idx);
             const isVisible =
               Math.abs(idx - currentIndex) <= 1 ||
               (currentIndex === 0 && idx === infiniteSlides.length - 1) ||
               (currentIndex === infiniteSlides.length - 1 && idx === 0);
 
-            if (!isVisible) return <div key={`${item.id}-${idx}`} className="w-full h-full flex-shrink-0" />;
-
             return (
-              <div key={`${item.id}-${idx}-${item.src}`} className="w-full h-full flex-shrink-0 relative">
-                <OptimizedImage
-                  src={item.src}
-                  alt={`${restaurant.name} - Image ${idx + 1}`}
-                  className="w-full h-full"
-                  objectFit="cover"
-                  priority={priority && isVisible}
-                  onLoad={() => {
-                    setLoadedBySrc((prev) => ({ ...prev, [item.src]: true }));
-                  }}
-                  onError={() => {
-                    if (idx === currentIndex && slideItems.length === 1) setIsImageUnavailable(true);
-                  }}
-                />
+              <div key={`${item.id}-${idx}`} className="w-full h-full flex-shrink-0 relative">
+                {shouldLoad ? (
+                  <OptimizedImage
+                    src={item.src}
+                    alt={`${restaurant.name} - Image ${idx + 1}`}
+                    className="w-full h-full"
+                    objectFit="cover"
+                    priority={priority && isVisible}
+                    onLoad={() => {
+                      setLoadedBySrc((prev) => ({ ...prev, [item.src]: true }));
+                    }}
+                    onError={() => {
+                      if (idx === currentIndex && slideItems.length === 1) setIsImageUnavailable(true);
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-pulse" />
+                )}
               </div>
             );
           })}

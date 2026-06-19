@@ -90,6 +90,7 @@ export default function SignupStep2() {
     panPhoto: null,
     drivingLicensePhoto: null
   })
+  const previewUrlsRef = useRef(new Set())
   const [uploadedDocs, setUploadedDocs] = useState(() => {
     const saved = sessionStorage.getItem("deliverySignupDocs")
     if (saved) {
@@ -119,16 +120,11 @@ export default function SignupStep2() {
 
   useEffect(() => {
     return () => {
-      Object.values(documents).forEach((file) => {
-        if (file instanceof File) {
-          const previewUrl = file.previewUrl || file._previewUrl
-          if (previewUrl) {
-            URL.revokeObjectURL(previewUrl)
-          }
-        }
+      previewUrlsRef.current.forEach((url) => {
+        URL.revokeObjectURL(url)
       })
     }
-  }, [documents])
+  }, [])
 
   const getPreviewSrc = (docType) => {
     const uploaded = uploadedDocs[docType]
@@ -138,7 +134,9 @@ export default function SignupStep2() {
     const localFile = documents[docType]
     if (localFile instanceof File) {
       if (!localFile._previewUrl) {
-        localFile._previewUrl = URL.createObjectURL(localFile)
+        const url = URL.createObjectURL(localFile)
+        localFile._previewUrl = url
+        previewUrlsRef.current.add(url)
       }
       return localFile._previewUrl
     }
@@ -178,6 +176,11 @@ export default function SignupStep2() {
   }
 
   const handleRemove = (docType) => {
+    const localFile = documents[docType]
+    if (localFile instanceof File && localFile._previewUrl) {
+      URL.revokeObjectURL(localFile._previewUrl)
+      previewUrlsRef.current.delete(localFile._previewUrl)
+    }
     setDocuments(prev => ({
       ...prev,
       [docType]: null

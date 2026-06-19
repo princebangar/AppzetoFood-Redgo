@@ -197,7 +197,7 @@ export default function FoodApproval() {
         await adminAPI.approveFoodItem(id)
         toast.success('Food item approved successfully')
       }
-      
+      window.dispatchEvent(new CustomEvent('sidebar-badge-refresh', { detail: { decrement: 'foodApprovals' } }))
       await fetchFoodRequests({ silent: true })
       setShowDetailModal(false)
       setSelectedRequest(null)
@@ -233,7 +233,7 @@ export default function FoodApproval() {
         await adminAPI.rejectFoodItem(id, rejectReason)
         toast.success('Food item rejected')
       }
-      
+      window.dispatchEvent(new CustomEvent('sidebar-badge-refresh', { detail: { decrement: 'foodApprovals' } }))
       await fetchFoodRequests({ silent: true })
       setShowRejectModal(false)
       setShowDetailModal(false)
