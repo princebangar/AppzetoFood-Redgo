@@ -458,8 +458,8 @@ export default function OTP() {
           <div className="text-center space-y-4">
             {showNameInput && (
               <div className="flex justify-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/30 text-white">
+                <div className="w-16 h-16 bg-[#FF0000]/10 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-[#FF0000] rounded-full flex items-center justify-center shadow-lg shadow-[#FF0000]/30 text-white">
                     <Smartphone className="h-5 w-5" />
                   </div>
                 </div>
@@ -499,7 +499,7 @@ export default function OTP() {
                     onPaste={index === 0 ? handlePaste : undefined}
                     disabled={isLoading}
                     aria-label={`OTP digit ${index + 1} of 4`}
-                    className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-bold border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white transition-all outline-none"
+                    className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-bold border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#FF0000] focus:ring-1 focus:ring-[#FF0000] bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white transition-all outline-none"
                   />
                 ))}
               </div>
@@ -522,7 +522,7 @@ export default function OTP() {
                       type="button"
                       onClick={handleResend}
                       disabled={isLoading}
-                      className="text-primary hover:text-[#991B1B] font-bold transition-colors disabled:opacity-50"
+                      className="text-[#FF0000] hover:text-[#CC0000] font-bold transition-colors disabled:opacity-50"
                     >
                       Resend SMS
                     </button>
@@ -554,20 +554,22 @@ export default function OTP() {
                 )}
               </div>
 
-              <Button
+              <button
+                type="button"
                 onClick={handleSubmitName}
                 disabled={isLoading}
-                className="w-full h-12 md:h-14 bg-primary hover:bg-[#991B1B] text-white font-bold text-lg rounded-xl transition-all hover:shadow-lg active:scale-[0.98]"
+                style={{ backgroundColor: '#FF0000' }}
+                className="w-full h-12 md:h-14 text-white font-bold text-lg rounded-xl transition-all hover:shadow-lg hover:brightness-90 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
               >
                 {isLoading ? "Getting things ready..." : "Finish Registration"}
-              </Button>
+              </button>
             </div>
           )}
 
           {/* Verification Loading Overlay */}
           {isLoading && !showNameInput && (
             <div className="flex justify-center pt-2">
-              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+              <Loader2 className="h-6 w-6 text-[#FF0000] animate-spin" />
             </div>
           )}
         </div>
@@ -587,8 +589,8 @@ export default function OTP() {
             className="w-full max-w-sm bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-2xl overflow-hidden p-6 text-center border border-gray-100 dark:border-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Smartphone className="h-8 w-8 text-primary" />
+            <div className="w-16 h-16 bg-[#FF0000]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Smartphone className="h-8 w-8 text-[#FF0000]" />
             </div>
             
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Account Found!</h3>
@@ -598,12 +600,14 @@ export default function OTP() {
             </p>
 
             <div className="space-y-3">
-              <Button
+              <button
+                type="button"
                 onClick={() => handleRestoreAction("restore")}
-                className="w-full h-12 bg-primary hover:bg-[#991B1B] text-white font-bold rounded-xl shadow-lg shadow-primary/20"
+                style={{ backgroundColor: '#FF0000' }}
+                className="w-full h-12 text-white font-bold rounded-xl hover:brightness-90 transition-all active:scale-[0.98] shadow-lg"
               >
                 Restore My Account
-              </Button>
+              </button>
               <Button
                 variant="outline"
                 onClick={() => handleRestoreAction("new")}

@@ -162,21 +162,22 @@ export default function SignIn() {
               )}
             </div>
 
-            <Button
+            <button
               type="submit"
               form="user-signin-form"
-              className="w-full h-12 md:h-14 bg-primary hover:bg-[#991B1B] text-white font-bold text-base md:text-lg rounded-lg transition-all hover:shadow-lg active:scale-[0.98]"
+              style={{ backgroundColor: '#FF0000' }}
+              className="w-full h-12 md:h-14 text-white font-bold text-base md:text-lg rounded-lg transition-all hover:shadow-lg hover:brightness-90 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin inline" />
                   Sending OTP...
                 </>
               ) : (
                 "Continue"
               )}
-            </Button>
+            </button>
           </form>
 
           {/* Social login separator */}
