@@ -219,7 +219,7 @@ export const verifyOtp = async (phone, otp, preserveOtp = false) => {
 
     // Static OTP Bypass: In dev/test mode with USE_DEFAULT_OTP=true, 
     // we allow '1234' unconditionally to avoid any formatting or database issues.
-    if (config.useDefaultOtp && otp === '1234') {
+    if (config.useDefaultOtp && String(otp).trim() === '1234') {
         console.info(`✅ [OTP-Verify] Static OTP '1234' ABSOLUTE BYPASS for ${phone}`);
         if (record && !preserveOtp) {
             await record.deleteOne(); // Reset the request limit for successful logins

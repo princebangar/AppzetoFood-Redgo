@@ -1,3 +1,7 @@
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+dns.setDefaultResultOrder('ipv4first');
+
 import http from 'http';
 import app from './src/app.js';
 import { config } from './src/config/env.js';

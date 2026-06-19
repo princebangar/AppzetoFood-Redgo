@@ -424,7 +424,7 @@ export default function RestaurantOTP() {
             <img 
               src="/appzeto_food_logo_transparent.png" 
               alt="Appzeto Food Logo" 
-              className="h-28 -mb-3.5 object-contain drop-shadow-md" 
+              className="h-10 mb-2 object-contain drop-shadow-md" 
             />
             <h2 className="text-[25px] font-extrabold text-[#B80B3D] dark:text-red-400 tracking-tight font-['Outfit']">
               Restaurant Partner
