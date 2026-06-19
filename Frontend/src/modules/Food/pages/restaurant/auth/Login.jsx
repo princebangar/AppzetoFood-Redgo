@@ -537,8 +537,8 @@ export default function RestaurantLogin() {
           {/* Logo & Header */}
           <div className="mb-5 text-center flex flex-col items-center">
             <img
-              src="/redgo_logo_transparent.png"
-              alt="RedGo Logo"
+              src="/appzeto_food_logo_transparent.png"
+              alt="Appzeto Food Logo"
               className="h-28 -mb-3.5 object-contain drop-shadow-md"
             />
             <h2 className="text-[25px] font-extrabold text-[#B80B3D] dark:text-red-400 tracking-tight font-['Outfit']">

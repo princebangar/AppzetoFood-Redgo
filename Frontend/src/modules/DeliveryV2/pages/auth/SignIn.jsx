@@ -712,8 +712,8 @@ export default function DeliverySignIn() {
           {/* Logo & Header */}
           <div className="mb-5 text-center flex flex-col items-center">
             <img
-              src="/redgo_logo_transparent.png"
-              alt="RedGo Logo"
+              src="/appzeto_food_logo_transparent.png"
+              alt="Appzeto Food Logo"
               className="h-28 -mb-3.5 object-contain drop-shadow-md"
             />
             <h2 className="text-[25px] font-extrabold bg-gradient-to-r from-[#0E4B9C] to-[#06336B] dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent tracking-tight font-['Outfit'] pb-0.5">

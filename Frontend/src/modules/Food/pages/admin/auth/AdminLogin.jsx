@@ -74,7 +74,7 @@ export default function AdminLogin() {
             >
               <img 
                 src={logoNew} 
-                alt="RedGo Logo" 
+                alt="Appzeto Food Logo" 
                 className="w-32 h-32 md:w-36 md:h-36 object-contain mx-auto"
               />
             </motion.div>
@@ -116,7 +116,7 @@ export default function AdminLogin() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="block w-full pl-12 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-[#DC2626]/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold"
-                      placeholder="admin@redgo.com"
+                      placeholder="admin@appzetofood.com"
                     />
                   </div>
                 </div>

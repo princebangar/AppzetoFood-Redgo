@@ -16,7 +16,7 @@ const loadCustomizationSettings = async () => {
 
   // Try loading from localStorage first
   try {
-    const saved = localStorage.getItem("redgo_customization_settings")
+    const saved = localStorage.getItem("appzeto_food_customization_settings")
     if (saved) {
       globalCustomizationSettings = JSON.parse(saved)
     }
@@ -30,7 +30,7 @@ const loadCustomizationSettings = async () => {
       if (settings) {
         globalCustomizationSettings = settings
         try {
-          localStorage.setItem("redgo_customization_settings", JSON.stringify(settings))
+          localStorage.setItem("appzeto_food_customization_settings", JSON.stringify(settings))
         } catch (e) {}
         // Fire a custom event to notify components that customization settings have loaded
         window.dispatchEvent(new CustomEvent("customizationSettingsLoaded"))
@@ -216,7 +216,7 @@ const TEMPORARY_DEFAULT_INDORE_LOCATION = {
 export function useLocation() {
   const [isDefaultLocationMode, setIsDefaultLocationMode] = useState(() => {
     try {
-      const saved = localStorage.getItem("redgo_customization_settings")
+      const saved = localStorage.getItem("appzeto_food_customization_settings")
       if (saved) {
         return JSON.parse(saved).default_location_enabled === true
       }
@@ -229,11 +229,11 @@ export function useLocation() {
       const cached = localStorage.getItem("userLocation")
       if (cached) return JSON.parse(cached)
       
-      const savedSettings = localStorage.getItem("redgo_customization_settings")
+      const savedSettings = localStorage.getItem("appzeto_food_customization_settings")
       const isEnabled = savedSettings ? JSON.parse(savedSettings).default_location_enabled === true : false
       return isEnabled ? TEMPORARY_DEFAULT_INDORE_LOCATION : null
     } catch {
-      const savedSettings = localStorage.getItem("redgo_customization_settings")
+      const savedSettings = localStorage.getItem("appzeto_food_customization_settings")
       const isEnabled = savedSettings ? JSON.parse(savedSettings).default_location_enabled === true : false
       return isEnabled ? TEMPORARY_DEFAULT_INDORE_LOCATION : null
     }
@@ -243,7 +243,7 @@ export function useLocation() {
   useEffect(() => {
     const handleSettingsLoaded = () => {
       try {
-        const saved = localStorage.getItem("redgo_customization_settings")
+        const saved = localStorage.getItem("appzeto_food_customization_settings")
         if (saved) {
           const enabled = JSON.parse(saved).default_location_enabled === true
           setIsDefaultLocationMode(enabled)

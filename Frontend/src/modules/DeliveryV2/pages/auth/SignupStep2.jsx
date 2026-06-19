@@ -440,10 +440,10 @@ export default function SignupStep2() {
                 sessionStorage.setItem("deliverySignupDetails", JSON.stringify({
                   ...existingDetails,
                   name: "Prince Bangar",
-                  email: "princeb@redgo.test",
+                  email: "princeb@appzetofood.test",
                   phone: "9098569621",
                   countryCode: "+91",
-                  address: "123 RedGo Tower, Vijay Nagar",
+                  address: "123 Appzeto Food Tower, Vijay Nagar",
                   city: "Indore",
                   state: "Madhya Pradesh",
                   vehicleType: "bike",

@@ -302,8 +302,8 @@ function UserLayoutContent() {
             <div className="flex-shrink-0">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#DC2626] to-[#991B1B] flex items-center justify-center p-1.5 shadow-lg">
                 <img 
-                  src="/assets/images/redgo-toast-logo.png" 
-                  alt="RedGo" 
+                  src="/assets/images/appzeto-food-toast-logo.png" 
+                  alt="Appzeto Food" 
                   className="w-full h-full object-contain brightness-0 invert" 
                 />
               </div>

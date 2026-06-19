@@ -1597,18 +1597,18 @@ export default function RestaurantOnboarding() {
     e.preventDefault();
     setStep1(prev => ({
       ...prev,
-      restaurantName: "The RedGo Kitchen",
+      restaurantName: "The Appzeto Food Kitchen",
       ownerName: "Prince Bangar",
-      ownerEmail: "princeb@redgo.test",
+      ownerEmail: "princeb@appzetofood.test",
       primaryContactNumber: "9876543210",
       location: {
         ...prev.location,
-        addressLine1: "123 RedGo Plaza",
+        addressLine1: "123 Appzeto Food Plaza",
         area: "Vijay Nagar",
         city: "Indore",
         state: "Madhya Pradesh",
         pincode: "452010",
-        formattedAddress: "123 RedGo Plaza, Vijay Nagar, Indore, MP 452010"
+        formattedAddress: "123 Appzeto Food Plaza, Vijay Nagar, Indore, MP 452010"
       },
       zoneId: zones[0]?._id || zones[0]?.id || prev.zoneId
     }));
@@ -1652,8 +1652,8 @@ export default function RestaurantOnboarding() {
       panImage: dummyFile,
       gstRegistered: true,
       gstNumber: "07AAAAA0000A1Z5",
-      gstLegalName: "The RedGo Kitchen",
-      gstAddress: "123 RedGo Plaza, Vijay Nagar, Indore",
+      gstLegalName: "The Appzeto Food Kitchen",
+      gstAddress: "123 Appzeto Food Plaza, Vijay Nagar, Indore",
       gstImage: dummyFile,
       fssaiNumber: "12345678901234",
       fssaiExpiry: "2030-12-31",

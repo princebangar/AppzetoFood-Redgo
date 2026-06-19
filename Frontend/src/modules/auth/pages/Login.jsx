@@ -580,8 +580,8 @@ export default function UnifiedOTPFastLogin() {
           {/* Main Title (Design Reference: Log In text) */}
           <div className="mb-10 mt-8 text-center flex flex-col items-center">
             <img
-              src="/redgo_logo_transparent.png"
-              alt="RedGo Logo"
+              src="/appzeto_food_logo_transparent.png"
+              alt="Appzeto Food Logo"
               className="h-28 mt-6 mb-1 object-contain drop-shadow-md"
             />
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-0 font-medium flex items-center justify-center gap-1.5">

@@ -245,8 +245,8 @@ export default function SignupStep1() {
               setFormData({
                 ...formData,
                 name: "Prince Bangar",
-                email: "princeb@redgo.test",
-                address: "123 RedGo Tower, Vijay Nagar",
+                email: "princeb@appzetofood.test",
+                address: "123 Appzeto Food Tower, Vijay Nagar",
                 city: "Indore",
                 state: "Madhya Pradesh",
                 vehicleType: "bike",
@@ -265,10 +265,10 @@ export default function SignupStep1() {
               sessionStorage.setItem("deliverySignupDetails", JSON.stringify({
                 ...existingDetails,
                 name: "Prince Bangar",
-                email: "princeb@redgo.test",
+                email: "princeb@appzetofood.test",
                 phone: "9876543210",
                 countryCode: "+91",
-                address: "123 RedGo Tower, Vijay Nagar",
+                address: "123 Appzeto Food Tower, Vijay Nagar",
                 city: "Indore",
                 state: "Madhya Pradesh",
                 vehicleType: "bike",

@@ -106,7 +106,7 @@ export default function CategoryPage({ embeddedCategorySlug = null, hideHeader =
 
   const [restaurantsData, setRestaurantsData] = useState(() => {
     const initialCategory = category?.toLowerCase() || 'all';
-    const cacheKey = `redgo_cat_${initialCategory}_zone_${zoneId || ''}`;
+    const cacheKey = `appzeto_food_cat_${initialCategory}_zone_${zoneId || ''}`;
     if (CATEGORY_SESSION_CACHE.has(cacheKey)) {
       return CATEGORY_SESSION_CACHE.get(cacheKey).restaurants || [];
     }
@@ -114,7 +114,7 @@ export default function CategoryPage({ embeddedCategorySlug = null, hideHeader =
   })
   const [loadingRestaurants, setLoadingRestaurants] = useState(() => {
     const initialCategory = category?.toLowerCase() || 'all';
-    const cacheKey = `redgo_cat_${initialCategory}_zone_${zoneId || ''}`;
+    const cacheKey = `appzeto_food_cat_${initialCategory}_zone_${zoneId || ''}`;
     return !CATEGORY_SESSION_CACHE.has(cacheKey);
   })
   const [isEnrichingMenus, setIsEnrichingMenus] = useState(false)
@@ -821,7 +821,7 @@ export default function CategoryPage({ embeddedCategorySlug = null, hideHeader =
 
     const fetchRestaurants = async () => {
       try {
-        const cacheKey = `redgo_cat_${selectedCategory}_zone_${zoneId || ''}`;
+        const cacheKey = `appzeto_food_cat_${selectedCategory}_zone_${zoneId || ''}`;
         const isCategoryChange = lastFetchedCategoryRef.current !== selectedCategory
 
         if (isCategoryChange) {
@@ -1095,7 +1095,7 @@ export default function CategoryPage({ embeddedCategorySlug = null, hideHeader =
                 })
                 
                 if (selectedCategory) {
-                  const cacheKey = `redgo_cat_${selectedCategory}_zone_${zoneId || ''}`;
+                  const cacheKey = `appzeto_food_cat_${selectedCategory}_zone_${zoneId || ''}`;
                   CATEGORY_SESSION_CACHE.set(cacheKey, {
                     restaurants: transformedRestaurants
                   });
