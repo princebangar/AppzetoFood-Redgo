@@ -1977,6 +1977,16 @@ function RestaurantDetailsContent() {
     filters.spicy
   )
 
+  // User-explicitly-applied filters (excludes vegMode — vegMode is a global preference, not a manual filter)
+  const hasUserAppliedFilters = Boolean(
+    showOnlyUnder250 ||
+    searchQuery.trim() ||
+    filters.sortBy ||
+    filters.vegNonVeg ||
+    filters.highlyReordered ||
+    filters.spicy
+  )
+
   const filteredSections = useMemo(
     () => getFilteredSections(),
     [restaurant?.menuSections, showOnlyUnder250, searchQuery, vegMode, filters, selectedMenuCategory]
@@ -2426,13 +2436,11 @@ function RestaurantDetailsContent() {
           <div className="relative">
             <div className="relative rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-[0_16px_40px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4 overflow-hidden">
               <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#DC2626] via-[#8a4b77] to-[#b36b8f]" />
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white line-clamp-2 leading-tight">
-                    {restaurant?.name || "Unknown Restaurant"}
-                  </h1>
-                </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight break-words">
+                  {restaurant?.name || "Unknown Restaurant"}
+                </h1>
                 <div className="mt-1 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <Utensils className="h-4 w-4" />
                   <span>{restaurant?.topCategory || restaurant?.cuisine || "Multi-cuisine"}</span>
@@ -2661,7 +2669,7 @@ function RestaurantDetailsContent() {
         {/* Menu Items Section */}
         {restaurant && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-6 sm:py-8 md:py-10 lg:py-12 space-y-6 md:space-y-8 lg:space-y-10">
-            {filteredSections.length === 0 && hasActiveMenuFilters && (
+            {filteredSections.length === 0 && hasUserAppliedFilters && (
               <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] px-5 py-8 text-center">
                 <p className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300">
                   No dishes match the selected filters.
@@ -2671,17 +2679,38 @@ function RestaurantDetailsContent() {
                 </p>
               </div>
             )}
-            {filteredSections.length === 0 && !hasActiveMenuFilters && !loadingMenuItems && (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <div className="bg-gray-100 dark:bg-gray-800/50 p-6 rounded-full mb-6">
-                  <Utensils className="h-12 w-12 text-gray-400" />
+            {filteredSections.length === 0 && !hasUserAppliedFilters && !loadingMenuItems && (() => {
+              // Check if the raw menu has any dishes at all (before veg filtering)
+              const rawSections = restaurant?.menuSections || [];
+              const rawHasAnyDish = rawSections.some(s =>
+                (Array.isArray(s?.items) && s.items.length > 0) ||
+                (Array.isArray(s?.subsections) && s.subsections.some(sub => Array.isArray(sub?.items) && sub.items.length > 0))
+              );
+              const showNoVegMessage = vegMode && rawHasAnyDish;
+
+              return (
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                  <div className="bg-gray-100 dark:bg-gray-800/50 p-6 rounded-full mb-6">
+                    <Utensils className="h-12 w-12 text-gray-400" />
+                  </div>
+                  {showNoVegMessage ? (
+                    <>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">No Veg Dishes Available</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                        {restaurant?.name || "This restaurant"} doesn't have any veg dishes on their menu right now.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Menu Coming Soon</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                        {restaurant?.name || "This restaurant"} is still setting up their menu. We'll notify you as soon as their delicious dishes are available!
+                      </p>
+                    </>
+                  )}
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Menu Coming Soon</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-                  {restaurant?.name || "This restaurant"} is still setting up their menu. We'll notify you as soon as their delicious dishes are available!
-                </p>
-              </div>
-            )}
+              );
+            })()}
 
             {(() => {
               let overallItemCount = 0

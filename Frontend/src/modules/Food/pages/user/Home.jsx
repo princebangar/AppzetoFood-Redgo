@@ -121,8 +121,10 @@ const setSessionCache = (key, data) => {
   try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (e) { }
 };
 
+// v2: added foodTypeScope field — old cache entries without it must be dropped
+const HOME_CATEGORIES_CACHE_KEY = 'food_home_categories_v2';
 let HOME_RESTAURANTS_CACHE = getSessionCache('food_home_restaurants');
-let HOME_CATEGORIES_CACHE = getSessionCache('food_home_categories');
+let HOME_CATEGORIES_CACHE = getSessionCache(HOME_CATEGORIES_CACHE_KEY);
 
 
 // Explore More Icons
@@ -985,10 +987,17 @@ export default function Home() {
   }, [landingCategories, normalizeImageUrl, slugifyCategory]);
 
   const displayCategories = useMemo(() => {
-    if (realCategories.length > 0) return realCategories;
-    if (menuCategories.length > 0) return menuCategories;
-    return normalizedLandingCategories;
-  }, [menuCategories, realCategories, normalizedLandingCategories]);
+    const filterByVeg = (cats) => {
+      if (!vegMode) return cats;
+      return cats.filter((cat) => {
+        const scope = String(cat.foodTypeScope || cat.type || '').toLowerCase().trim();
+        return scope !== 'non-veg' && scope !== 'nonveg' && scope !== 'non veg';
+      });
+    };
+    if (realCategories.length > 0) return filterByVeg(realCategories);
+    if (menuCategories.length > 0) return filterByVeg(menuCategories);
+    return filterByVeg(normalizedLandingCategories);
+  }, [menuCategories, realCategories, normalizedLandingCategories, vegMode]);
 
   // Swipe functionality for hero banner carousel
   const touchStartX = useRef(0);
@@ -1512,6 +1521,7 @@ export default function Home() {
                 foodImages[idx % foodImages.length] ||
                 foodImages[0],
               type: cat?.type || "",
+              foodTypeScope: cat?.foodTypeScope || "",
             }))
             : [];
 
@@ -1526,7 +1536,7 @@ export default function Home() {
         if (!cancelled) {
           setRealCategories(categories);
           HOME_CATEGORIES_CACHE = categories;
-          setSessionCache('food_home_categories', categories);
+          setSessionCache(HOME_CATEGORIES_CACHE_KEY, categories);
         }
       } catch (err) {
         debugWarn("Failed to fetch categories:", err);
@@ -2012,11 +2022,12 @@ export default function Home() {
             const sectionItems = Array.isArray(section?.items)
               ? section.items
               : [];
+            let sectionHasVeg = false;
             sectionItems.forEach((item) => {
               const foodType = String(item?.foodType || "")
                 .trim()
                 .toLowerCase();
-              if (foodType === "veg") hasVeg = true;
+              if (foodType === "veg") { hasVeg = true; sectionHasVeg = true; }
               if (
                 foodType === "non-veg" ||
                 foodType === "non veg" ||
@@ -2036,7 +2047,7 @@ export default function Home() {
                 const foodType = String(item?.foodType || "")
                   .trim()
                   .toLowerCase();
-                if (foodType === "veg") hasVeg = true;
+                if (foodType === "veg") { hasVeg = true; sectionHasVeg = true; }
                 if (
                   foodType === "non-veg" ||
                   foodType === "non veg" ||
@@ -2051,6 +2062,9 @@ export default function Home() {
 
             const slug = slugifyCategory(categoryName);
             if (!slug) return;
+
+            // Skip non-veg-only sections when veg mode is on
+            if (vegMode && !sectionHasVeg) return;
 
             let image = "";
             if (Array.isArray(section?.items) && section.items.length > 0) {
@@ -2121,9 +2135,10 @@ export default function Home() {
   const matchesVegMode = useCallback(
     (restaurant) => {
       if (!vegMode) return true;
-      return restaurant?.pureVegRestaurant === true;
+      if (vegModeOption === "pure-veg") return restaurant?.pureVegRestaurant === true;
+      return true; // "all" option: show all restaurants, non-veg dishes hidden inside by RestaurantDetails
     },
-    [vegMode],
+    [vegMode, vegModeOption],
   );
 
   // Filter restaurants and foods based on active filters
