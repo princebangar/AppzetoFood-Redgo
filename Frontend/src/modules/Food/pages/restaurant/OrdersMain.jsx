@@ -2208,6 +2208,8 @@ export default function OrdersMain() {
     setVerifyingOrder(order);
     setTakeawayOtpInput("");
     setShowVerifyTakeawayPopup(true);
+    // Delay focus so popup animation completes before keyboard opens on mobile
+    setTimeout(() => otpInputRef.current?.focus(), 350);
   };
 
   // Handle OTP verification and order completion
@@ -3650,7 +3652,6 @@ export default function OrdersMain() {
                     ref={otpInputRef}
                     placeholder="••••"
                     className="w-full text-center text-5xl font-black tracking-[0.6em] pl-[0.3em] py-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-[#B80B3D] focus:outline-none focus:ring-4 focus:ring-[#B80B3D]/10 bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white transition-all font-mono caret-[#B80B3D]"
-                    autoFocus
                   />
                 </div>
 
