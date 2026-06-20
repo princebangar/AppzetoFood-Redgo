@@ -4028,6 +4028,16 @@ const OrderCard = memo(function OrderCard({
                       </span>
                     )}
 
+                    {normalizedType !== "takeaway" &&
+                      normalizedType !== "dining" &&
+                      dispatchStatus !== "accepted" &&
+                      !deliveryPartnerId && (
+                        <ResendNotificationButton
+                          orderId={orderId}
+                          mongoId={mongoId}
+                        />
+                    )}
+
                     {isPreparing && onMarkReady && (
                       <button
                         type="button"

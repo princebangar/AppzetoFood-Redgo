@@ -323,6 +323,9 @@ export default function Cart() {
 
   // Coupons state - fetched from backend
   const [availableCoupons, setAvailableCoupons] = useState([])
+  const [loadingCoupons, setLoadingCoupons] = useState(false)
+  const [userOrderCount, setUserOrderCount] = useState(0)
+
   const filteredCoupons = useMemo(() => {
     const subtotal = pricing?.subtotal || cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
     const filtered = availableCoupons.filter((coupon) => {
@@ -355,8 +358,6 @@ export default function Cart() {
       return discountB - discountA
     })
   }, [availableCoupons, orderType, cart, pricing, userOrderCount])
-  const [loadingCoupons, setLoadingCoupons] = useState(false)
-  const [userOrderCount, setUserOrderCount] = useState(0)
 
   // Lock body scroll when auto coupon popup is open
   useEffect(() => {
@@ -2280,7 +2281,7 @@ export default function Cart() {
   }
 
   const handleGoToOrders = () => {
-    setShowOrderSuccess(false)
+    // Keep showOrderSuccess as true during transition to prevent rendering empty cart page
     setShowSavingsCongrats(false)
     setCongratssSavingsAmount(0)
     setCongratssSavingsPercentage(0)
@@ -3986,6 +3987,36 @@ export default function Cart() {
                   </motion.div>
                 </div>
               </>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+
+        {/* Placing Order Loading Overlay */}
+        {createPortal(
+          <AnimatePresence>
+            {isPlacingOrder && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100000] bg-white/90 dark:bg-black/90 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto"
+              >
+                <div className="flex flex-col items-center gap-4 text-center px-6">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-4 border-gray-200 dark:border-gray-800" />
+                    <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-t-[#DC2626] dark:border-t-red-500 animate-spin" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-4">
+                    Placing Your Order...
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                    {selectedPaymentMethod === "razorpay" 
+                      ? "Please wait while we verify your payment. Do not close or refresh the page."
+                      : "We are creating your order. Please wait."}
+                  </p>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>,
           document.body

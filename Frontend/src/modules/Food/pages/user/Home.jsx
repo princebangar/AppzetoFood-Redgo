@@ -536,7 +536,7 @@ const RestaurantCardOfferCarousel = React.memo(({ coupons }) => {
     );
   }
 
-  const currentCoupon = uniqueCoupons[currentIndex];
+const currentCoupon = uniqueCoupons[currentIndex] || uniqueCoupons[0];
 
   return (
     <div className="flex items-center gap-2 mt-2 overflow-hidden h-[20px] relative">
