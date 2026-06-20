@@ -1,5 +1,6 @@
 import { useCallback } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
+import { useProfile } from "@food/context/ProfileContext"
 
 const toFoodPath = (value) => {
   if (typeof value !== "string") return null
@@ -19,10 +20,11 @@ const getNormalizedUserPath = (pathname) => {
   return pathname || "/"
 }
 
-const resolveBackPath = ({ pathname, search, state }) => {
+const resolveBackPath = ({ pathname, search, state, orderType }) => {
   const normalizedPath = getNormalizedUserPath(pathname)
   const explicitBackPath = toFoodPath(state?.backTo) || toFoodPath(state?.from) || toFoodPath(state?.returnTo)
   const searchParams = new URLSearchParams(search || "")
+  const defaultHomePath = orderType === "takeaway" ? "/food/user/takeaway" : "/food/user"
 
   if (
     normalizedPath === "/user/profile/payments/new" ||
@@ -52,14 +54,14 @@ const resolveBackPath = ({ pathname, search, state }) => {
   }
 
   if (normalizedPath === "/user/notifications") {
-    return explicitBackPath || "/food/user"
+    return explicitBackPath || defaultHomePath
   }
 
   if (/^\/user\/restaurants\/[^/]+$/.test(normalizedPath)) {
     if (searchParams.get("under250") === "true") {
       return "/food/user/under-250"
     }
-    return explicitBackPath || "/food/user"
+    return explicitBackPath || defaultHomePath
   }
 
   if (/^\/user\/dining\/book(\/|$)/.test(normalizedPath)) {
@@ -94,7 +96,7 @@ const resolveBackPath = ({ pathname, search, state }) => {
   }
 
   if (normalizedPath === "/user/address-selector") {
-    return explicitBackPath || "/food/user"
+    return explicitBackPath || defaultHomePath
   }
 
   if (/^\/user\/collections\/[^/]+$/.test(normalizedPath)) {
@@ -102,7 +104,7 @@ const resolveBackPath = ({ pathname, search, state }) => {
   }
 
   if (normalizedPath === "/user/categories") {
-    return "/food/user"
+    return defaultHomePath
   }
 
   if (/^\/user\/category\/[^/]+$/.test(normalizedPath)) {
@@ -114,11 +116,11 @@ const resolveBackPath = ({ pathname, search, state }) => {
     normalizedPath === "/user/gourmet" ||
     normalizedPath === "/user/coffee"
   ) {
-    return "/food/user"
+    return defaultHomePath
   }
 
   if (/^\/user\/product\/[^/]+$/.test(normalizedPath)) {
-    return explicitBackPath || "/food/user"
+    return explicitBackPath || defaultHomePath
   }
 
   if (/^\/user\/complaints(\/|$)/.test(normalizedPath)) {
@@ -129,18 +131,20 @@ const resolveBackPath = ({ pathname, search, state }) => {
     return explicitBackPath
   }
 
-  return "/food/user"
+  return defaultHomePath
 }
 
 export default function useAppBackNavigation() {
   const navigate = useNavigate()
   const location = useLocation()
+  const profile = useProfile()
+  const orderType = profile ? profile.orderType : null
 
   return useCallback(() => {
     if (window.history.state && window.history.state.idx > 0) {
       navigate(-1)
     } else {
-      navigate(resolveBackPath(location), { replace: true })
+      navigate(resolveBackPath({ ...location, orderType }), { replace: true })
     }
-  }, [location, navigate])
+  }, [location, navigate, orderType])
 }
