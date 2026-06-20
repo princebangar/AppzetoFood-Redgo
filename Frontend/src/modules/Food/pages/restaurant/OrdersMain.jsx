@@ -1315,6 +1315,7 @@ export default function OrdersMain() {
   const [takeawayOtpInput, setTakeawayOtpInput] = useState("");
   const [isSubmittingVerifyTakeaway, setIsSubmittingVerifyTakeaway] = useState(false);
   const otpInputRef = useRef(null);
+  const focusTimerRef = useRef(null);
   const [isAcceptingOrder, setIsAcceptingOrder] = useState(false);
   const shownOrdersRef = useRef(new Set()); // Track orders already shown in popup
   const acceptSliderRef = useRef(null);
@@ -2208,8 +2209,11 @@ export default function OrdersMain() {
     setVerifyingOrder(order);
     setTakeawayOtpInput("");
     setShowVerifyTakeawayPopup(true);
-    // Delay focus so popup animation completes before keyboard opens on mobile
-    setTimeout(() => otpInputRef.current?.focus(), 350);
+    // Only auto-focus on non-touch devices to prevent mobile viewport shift
+    if (!('ontouchstart' in window)) {
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => otpInputRef.current?.focus(), 350);
+    }
   };
 
   // Handle OTP verification and order completion
@@ -2238,10 +2242,33 @@ export default function OrdersMain() {
   };
 
   const handleVerifyTakeawayClose = () => {
+    clearTimeout(focusTimerRef.current);
     setShowVerifyTakeawayPopup(false);
     setVerifyingOrder(null);
     setTakeawayOtpInput("");
   };
+
+  // iOS/Android safe scroll lock — preserves scroll position when popups open
+  useEffect(() => {
+    const isAnyOpen = showNewOrderPopup || showRejectPopup || showCancelPopup || showVerifyTakeawayPopup || isSheetOpen;
+    if (isAnyOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+    } else {
+      const top = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      if (top) window.scrollTo(0, -parseInt(top, 10));
+    }
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    };
+  }, [showNewOrderPopup, showRejectPopup, showCancelPopup, showVerifyTakeawayPopup, isSheetOpen]);
 
   // Toggle mute
   const toggleMute = () => {
@@ -3831,10 +3858,7 @@ export default function OrdersMain() {
         )}
       </AnimatePresence>
 
-      {/* Scroll lock when any popup or sheet is open */}
-      {(showNewOrderPopup || showRejectPopup || showCancelPopup || showVerifyTakeawayPopup || isSheetOpen) && (
-        <style>{`body { overflow: hidden !important; }`}</style>
-      )}
+      {/* Scroll lock handled via useEffect below */}
 
       {/* Bottom Navigation - Sticky */}
       <BottomNavOrders />
