@@ -84,7 +84,10 @@ export const useUserNotifications = () => {
     socketRef.current.on('connect', () => {
       debugLog('✅ User Socket connected, userId:', userId);
       setIsConnected(true);
-      if (typeof window !== 'undefined') window.orderSocketConnected = true;
+      if (typeof window !== 'undefined') {
+        window.orderSocketConnected = true;
+        window.dispatchEvent(new CustomEvent('userSocketConnectionChange', { detail: { isConnected: true } }));
+      }
       // Backend auto-joins 'user:userId' room based on role/token in config/socket.js
     });
 
@@ -193,13 +196,19 @@ export const useUserNotifications = () => {
         // debugLog('❌ Socket connection error:', error.message);
       }
       setIsConnected(false);
-      if (typeof window !== 'undefined') window.orderSocketConnected = false;
+      if (typeof window !== 'undefined') {
+        window.orderSocketConnected = false;
+        window.dispatchEvent(new CustomEvent('userSocketConnectionChange', { detail: { isConnected: false } }));
+      }
     });
 
     socketRef.current.on('disconnect', (reason) => {
       debugLog('🔌 Socket disconnected:', reason);
       setIsConnected(false);
-      if (typeof window !== 'undefined') window.orderSocketConnected = false;
+      if (typeof window !== 'undefined') {
+        window.orderSocketConnected = false;
+        window.dispatchEvent(new CustomEvent('userSocketConnectionChange', { detail: { isConnected: false } }));
+      }
     });
 
     return () => {

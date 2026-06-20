@@ -918,6 +918,20 @@ export const adminAPI = {
   },
 };
 
+let restaurantOrdersCache = null;
+let restaurantOrdersCacheKey = "";
+let restaurantOrdersCacheAt = 0;
+let restaurantOrdersInFlight = null;
+let restaurantOrdersInFlightKey = "";
+
+export const invalidateRestaurantOrdersCache = () => {
+  restaurantOrdersCache = null;
+  restaurantOrdersCacheKey = "";
+  restaurantOrdersCacheAt = 0;
+  restaurantOrdersInFlight = null;
+  restaurantOrdersInFlightKey = "";
+};
+
 /** Restaurant API - OTP login via new backend; no email/password. */
 export const restaurantAPI = {
   sendOTP: (phone, _purpose = "login") => {
@@ -1198,85 +1212,76 @@ export const restaurantAPI = {
     apiClient.patch(`/food/restaurant/foods/${String(id)}`, body ?? {}, {
       contextModule: "restaurant",
     }),
+  invalidateOrdersCache: () => {
+    invalidateRestaurantOrdersCache();
+  },
   /** Orders (restaurant dashboard) */
-  getOrders: (() => {
-    // Single-flight de-dupe to avoid duplicate GETs in React StrictMode / double-mount.
-    let inFlight = null;
-    let inFlightKey = "";
-    let cache = null;
-    let cacheKey = "";
-    let cacheAt = 0;
-    const CACHE_MS = 800;
+  getOrders: (params = {}) => {
+    const key = JSON.stringify({ limit: 50, page: 1, ...params });
+    const now = Date.now();
 
-    const buildKey = (p = {}) => JSON.stringify({ limit: 50, page: 1, ...p });
+    if (restaurantOrdersCache && restaurantOrdersCacheKey === key && now - restaurantOrdersCacheAt < 800) {
+      return Promise.resolve(restaurantOrdersCache);
+    }
 
-    return (params = {}) => {
-      const key = buildKey(params);
-      const now = Date.now();
+    if (restaurantOrdersInFlight && restaurantOrdersInFlightKey === key) return restaurantOrdersInFlight;
 
-      if (cache && cacheKey === key && now - cacheAt < CACHE_MS) {
-        return Promise.resolve(cache);
-      }
+    restaurantOrdersInFlightKey = key;
+    restaurantOrdersInFlight = apiClient
+      .get("/food/restaurant/orders", {
+        params: { limit: 50, page: 1, ...params },
+        contextModule: "restaurant",
+      })
+      .then((res) => {
+        // Backend paginated shape: { data: { data: [...], meta: {...} } }
+        // Normalize to { data: { data: { orders: [...], meta } } } for restaurant UI pages.
+        const payload = res?.data?.data || {};
+        const rowsRaw = Array.isArray(payload.data) ? payload.data : [];
 
-      if (inFlight && inFlightKey === key) return inFlight;
+        // Normalize backend order fields to match existing restaurant UI expectations.
+        // UI historically uses: order.status, order.address, order.total, order.paymentMethod
+        const normalizeStatus = (s, orderType) => {
+          const v = String(s || "").toLowerCase();
+          // Backend: created -> treat as confirmed/new in UI
+          if (v === "created") return "confirmed";
+          // Backend: ready_for_pickup -> ready
+          if (v === "ready_for_pickup") return "ready";
+          // Backend: picked_up for takeaway = completed (terminal). For delivery = out_for_delivery
+          if (v === "picked_up") {
+            return orderType === "takeaway" ? "completed" : "out_for_delivery";
+          }
+          if (v.includes("cancel")) return "cancelled";
+          return v || "confirmed";
+        };
 
-      inFlightKey = key;
-      inFlight = apiClient
-        .get("/food/restaurant/orders", {
-          params: { limit: 50, page: 1, ...params },
-          contextModule: "restaurant",
-        })
-        .then((res) => {
-          // Backend paginated shape: { data: { data: [...], meta: {...} } }
-          // Normalize to { data: { data: { orders: [...], meta } } } for restaurant UI pages.
-          const payload = res?.data?.data || {};
-          const rowsRaw = Array.isArray(payload.data) ? payload.data : [];
-
-          // Normalize backend order fields to match existing restaurant UI expectations.
-          // UI historically uses: order.status, order.address, order.total, order.paymentMethod
-          const normalizeStatus = (s, orderType) => {
-            const v = String(s || "").toLowerCase();
-            // Backend: created -> treat as confirmed/new in UI
-            if (v === "created") return "confirmed";
-            // Backend: ready_for_pickup -> ready
-            if (v === "ready_for_pickup") return "ready";
-            // Backend: picked_up for takeaway = completed (terminal). For delivery = out_for_delivery
-            if (v === "picked_up") {
-              return orderType === "takeaway" ? "completed" : "out_for_delivery";
-            }
-            if (v.includes("cancel")) return "cancelled";
-            return v || "confirmed";
-          };
-
-          const rows = rowsRaw.map((o) => {
-            const status = normalizeStatus(o.orderStatus || o.status, o.orderType);
-            const address = o.deliveryAddress || o.address;
-            const total = o.pricing?.total ?? o.total ?? 0;
-            const paymentMethod = o.payment?.method || o.paymentMethod || null;
-            return { ...o, status, address, total, paymentMethod };
-          });
-          const meta = payload.meta || {};
-          const normalized = {
-            ...res,
-            data: {
-              ...res.data,
-              data: { orders: rows, meta },
-            },
-          };
-
-          cache = normalized;
-          cacheKey = key;
-          cacheAt = Date.now();
-          return normalized;
-        })
-        .finally(() => {
-          inFlight = null;
-          inFlightKey = "";
+        const rows = rowsRaw.map((o) => {
+          const status = normalizeStatus(o.orderStatus || o.status, o.orderType);
+          const address = o.deliveryAddress || o.address;
+          const total = o.pricing?.total ?? o.total ?? 0;
+          const paymentMethod = o.payment?.method || o.paymentMethod || null;
+          return { ...o, status, address, total, paymentMethod };
         });
+        const meta = payload.meta || {};
+        const normalized = {
+          ...res,
+          data: {
+            ...res.data,
+            data: { orders: rows, meta },
+          },
+        };
 
-      return inFlight;
-    };
-  })(),
+        restaurantOrdersCache = normalized;
+        restaurantOrdersCacheKey = key;
+        restaurantOrdersCacheAt = Date.now();
+        return normalized;
+      })
+      .finally(() => {
+        restaurantOrdersInFlight = null;
+        restaurantOrdersInFlightKey = "";
+      });
+
+    return restaurantOrdersInFlight;
+  },
   updateOrderStatus: (orderId, body) => {
     const raw = body ?? {};
     const outgoing = { ...raw };
@@ -1297,18 +1302,31 @@ export const restaurantAPI = {
       outgoing.orderStatus = normalizeOutgoingStatus(outgoing.orderStatus);
     }
 
-    return apiClient.patch(
-      `/food/restaurant/orders/${String(orderId)}/status`,
-      outgoing,
-      { contextModule: "restaurant" },
-    );
+    restaurantAPI.invalidateOrdersCache();
+
+    return apiClient
+      .patch(
+        `/food/restaurant/orders/${String(orderId)}/status`,
+        outgoing,
+        { contextModule: "restaurant" },
+      )
+      .then((res) => {
+        restaurantAPI.invalidateOrdersCache();
+        return res;
+      });
   },
   completeTakeawayOrder: (orderId, otp) => {
-    return apiClient.post(
-      `/food/restaurant/orders/${String(orderId)}/complete-takeaway`,
-      { otp },
-      { contextModule: "restaurant" },
-    );
+    restaurantAPI.invalidateOrdersCache();
+    return apiClient
+      .post(
+        `/food/restaurant/orders/${String(orderId)}/complete-takeaway`,
+        { otp },
+        { contextModule: "restaurant" },
+      )
+      .then((res) => {
+        restaurantAPI.invalidateOrdersCache();
+        return res;
+      });
   },
   /**
    * Accept an incoming order (restaurant).

@@ -2927,7 +2927,7 @@ export default function OrdersMain() {
         {showNewOrderPopup && (
           <>
             <motion.div
-              className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}>
@@ -3381,7 +3381,7 @@ export default function OrdersMain() {
         {showRejectPopup && (
           <>
             <motion.div
-              className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[110] bg-black/60 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -3475,7 +3475,7 @@ export default function OrdersMain() {
         {showCancelPopup && orderToCancel && (
           <>
             <motion.div
-              className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[110] bg-black/60 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -3571,15 +3571,11 @@ export default function OrdersMain() {
       </AnimatePresence>
 
       {/* Verify & Complete Takeaway OTP Popup */}
-      {/* Scroll lock when popup open */}
-      {showVerifyTakeawayPopup && verifyingOrder && (
-        <style>{`body { overflow: hidden !important; }`}</style>
-      )}
       <AnimatePresence>
         {showVerifyTakeawayPopup && verifyingOrder && (
           <>
             <motion.div
-              className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+              className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -3687,7 +3683,7 @@ export default function OrdersMain() {
       <AnimatePresence>
         {isSheetOpen && selectedOrder && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/50/40 flex items-end justify-center"
+            className="fixed inset-0 z-[80] bg-black/50/40 flex items-end justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -3833,6 +3829,11 @@ export default function OrdersMain() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Scroll lock when any popup or sheet is open */}
+      {(showNewOrderPopup || showRejectPopup || showCancelPopup || showVerifyTakeawayPopup || isSheetOpen) && (
+        <style>{`body { overflow: hidden !important; }`}</style>
+      )}
 
       {/* Bottom Navigation - Sticky */}
       <BottomNavOrders />
@@ -3986,7 +3987,7 @@ const OrderCard = memo(function OrderCard({
 
           {/* Bottom Actions Row - Only shown if actions/ETA exist */}
           {(scheduledAt || (!isReady && eta) || (isPreparing || isReady || normalizedStatus === "confirmed")) && (
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-50 mt-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-50 mt-1.5">
               {scheduledAt ? (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[8px] font-bold text-green-600 uppercase">Scheduled For</span>
@@ -4011,7 +4012,7 @@ const OrderCard = memo(function OrderCard({
                 </div>
               )}
 
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
                 {(isPreparing || isReady || normalizedStatus === "confirmed") && (
                   <>
                     {deliveryPartnerId && (
@@ -4086,11 +4087,14 @@ function PreparingOrders({
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [markingReadyOrderIds, setMarkingReadyOrderIds] = useState({});
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchOrders = async () => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
       try {
         // Fetch all orders and filter for 'preparing' status on frontend
         const response = await restaurantAPI.getOrders();
@@ -4177,6 +4181,10 @@ function PreparingOrders({
           setOrders([]);
           setLoading(false);
         }
+      } finally {
+        if (isMounted) {
+          isFetchingRef.current = false;
+        }
       }
     };
 
@@ -4202,9 +4210,10 @@ function PreparingOrders({
 
   // Auto-mark orders as ready when ETA reaches 0
   useEffect(() => {
-    if (!currentTime || orders.length === 0) return;
+    if (orders.length === 0) return;
 
     const checkAndMarkReady = async () => {
+      const now = new Date();
       for (const order of orders) {
         const orderKey = order.mongoId || order.orderId;
 
@@ -4214,7 +4223,7 @@ function PreparingOrders({
         }
 
         // Calculate remaining ETA
-        const elapsedMs = currentTime - order.preparingTimestamp;
+        const elapsedMs = now - order.preparingTimestamp;
         const elapsedMinutes = Math.floor(elapsedMs / 60000);
         const remainingMinutes = Math.max(0, order.initialETA - elapsedMinutes);
 
@@ -4271,7 +4280,7 @@ function PreparingOrders({
     return () => {
       clearInterval(readyCheckInterval);
     };
-  }, [currentTime, orders]);
+  }, [orders, onStatusChanged]);
 
   // Clear marked orders when orders list changes (orders moved to ready)
   useEffect(() => {

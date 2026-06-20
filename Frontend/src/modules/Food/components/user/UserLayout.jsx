@@ -205,7 +205,8 @@ function UserLayoutContent() {
     !normalizedPath.includes('profile') &&
     !normalizedPath.includes('wallet') &&
     !normalizedPath.includes('help') &&
-    !normalizedPath.includes('address');
+    !normalizedPath.includes('address') &&
+    !normalizedPath.includes('orders');
 
   // Debounced loading state to prevent flickering and ensure smooth navigation transitions
   const { showGlobalLoader, setShowGlobalLoader } = useLocationSelector()
@@ -302,8 +303,8 @@ function UserLayoutContent() {
             <div className="flex-shrink-0">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#DC2626] to-[#991B1B] flex items-center justify-center p-1.5 shadow-lg">
                 <img 
-                  src="/assets/images/appzeto-food-toast-logo.png" 
-                  alt="Appzeto Food" 
+                  src="/assets/images/redgo-toast-logo.png" 
+                  alt="RedGo" 
                   className="w-full h-full object-contain brightness-0 invert" 
                 />
               </div>
