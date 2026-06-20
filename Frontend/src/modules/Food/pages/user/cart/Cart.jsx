@@ -742,7 +742,9 @@ export default function Cart() {
   useEffect(() => {
     const fetchRestaurantData = async () => {
       if (cart.length === 0) {
+          if (!showOrderSuccess && !showPlacingOrder && !showSavingsCongrats) {
         setRestaurantData(null)
+          }
         return
       }
 
@@ -883,7 +885,7 @@ export default function Cart() {
     }
 
     fetchRestaurantData()
-  }, [cart.length, cart[0]?.restaurantId, cart[0]?.restaurant])
+  }, [cart.length, cart[0]?.restaurantId, cart[0]?.restaurant, showOrderSuccess, showPlacingOrder, showSavingsCongrats])
 
   // Fetch approved addons for the restaurant
   useEffect(() => {
