@@ -417,9 +417,10 @@ function RestaurantDetailsContent() {
     return () => clearInterval(timer)
   }, [couponsKey, coupons.length])
 
-  // Lock body scroll when offers sheet is open
+  // Lock body scroll when any bottom sheet or modal is open
   useEffect(() => {
-    if (showOffersSheet) {
+    const anySheetOpen = showOffersSheet || showMenuSheet || showFilterSheet || showLocationSheet || showMenuOptionsSheet || showItemDetail || showShareModal || showManageCollections || showScheduleSheet
+    if (anySheetOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
@@ -427,7 +428,7 @@ function RestaurantDetailsContent() {
     return () => {
       document.body.style.overflow = ''
     }
-  }, [showOffersSheet])
+  }, [showOffersSheet, showMenuSheet, showFilterSheet, showLocationSheet, showMenuOptionsSheet, showItemDetail, showShareModal, showManageCollections, showScheduleSheet])
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -1478,7 +1479,7 @@ function RestaurantDetailsContent() {
     return firstSubsectionImage || ""
   }
 
-  // Menu categories - dynamically generated from restaurant menu sections
+  // Menu categories - built from raw sections but item count respects veg mode inline
   const menuCategories = useMemo(() => {
     if (!restaurant?.menuSections || !Array.isArray(restaurant.menuSections)) return []
 
@@ -1487,10 +1488,18 @@ function RestaurantDetailsContent() {
         if (isRecommendedSection(section)) return null
 
         const sectionTitle = getSectionDisplayName(section)
-        const itemCount = Array.isArray(section?.items) ? section.items.length : 0
-        const subsectionCount = Array.isArray(section?.subsections)
-          ? section.subsections.reduce((sum, sub) => sum + (Array.isArray(sub?.items) ? sub.items.length : 0), 0)
-          : 0
+
+        // Count only items that pass veg mode filter
+        const countVisibleItems = (items) =>
+          toRenderableArray(items).filter((item) => {
+            if (item?.isAvailable === false) return false
+            if (vegMode && item?.foodType !== 'Veg') return false
+            return true
+          }).length
+
+        const itemCount = countVisibleItems(section?.items)
+        const subsectionCount = toRenderableArray(section?.subsections)
+          .reduce((sum, sub) => sum + countVisibleItems(sub?.items), 0)
         const totalCount = itemCount + subsectionCount
 
         if (totalCount <= 0) return null
@@ -1504,7 +1513,7 @@ function RestaurantDetailsContent() {
         }
       })
       .filter(Boolean)
-  }, [restaurant?.menuSections])
+  }, [restaurant?.menuSections, vegMode])
 
   // Count active filters
   const getActiveFilterCount = () => {

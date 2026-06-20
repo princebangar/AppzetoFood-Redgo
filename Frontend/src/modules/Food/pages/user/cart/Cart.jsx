@@ -308,6 +308,14 @@ export default function Cart() {
   const hasShownPromoPopupRef = useRef({ delivery: false, takeaway: false, dining: false })
   const [showAutoCouponPopup, setShowAutoCouponPopup] = useState(false)
   const [bestCoupon, setBestCoupon] = useState(null)
+  const bestCouponDiscount = useMemo(() => {
+    if (!bestCoupon) return 0
+    if (bestCoupon.discountType === "percentage") {
+      const raw = subtotal * (Number(bestCoupon.discountPercentage || 0) / 100)
+      return Math.round(Number(bestCoupon.maxDiscount) > 0 ? Math.min(raw, Number(bestCoupon.maxDiscount)) : raw)
+    }
+    return Math.round(Number(bestCoupon.originalPrice || 0))
+  }, [bestCoupon, subtotal])
 
   // Addons state
   const [addons, setAddons] = useState([])
@@ -318,11 +326,19 @@ export default function Cart() {
   const filteredCoupons = useMemo(() => {
     const subtotal = pricing?.subtotal || cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
     const filtered = availableCoupons.filter((coupon) => {
-      if (!coupon.couponType || coupon.couponType === "all") return true
-      return coupon.couponType === orderType
+      // Filter by order type constraints
+      if (coupon.couponType && coupon.couponType !== "all" && coupon.couponType !== orderType) {
+        return false
+      }
+      // Filter out first-time coupons if the user is not a first-time user
+      const isFirstTimeOnly = coupon.customerGroup === "new" || coupon.customerGroup === "first-time"
+      if (isFirstTimeOnly && userOrderCount > 0) {
+        return false
+      }
+      return true
     })
 
-    // Sort: Applicable coupons first, then by discount value descending
+    // Sort: Applicable coupons first, then by discount value descending based on current subtotal
     return filtered.sort((a, b) => {
       const isApplicableA = subtotal >= (Number(a.minOrder) || 0)
       const isApplicableB = subtotal >= (Number(b.minOrder) || 0)
@@ -330,11 +346,15 @@ export default function Cart() {
       if (isApplicableA && !isApplicableB) return -1
       if (!isApplicableA && isApplicableB) return 1
 
-      const discountA = Number(a.discount || 0)
-      const discountB = Number(b.discount || 0)
+      const discountA = a.discountType === "percentage"
+        ? Math.min(subtotal * (Number(a.discountPercentage || 0) / 100), Number(a.maxDiscount) || Infinity)
+        : Number(a.originalPrice || 0)
+      const discountB = b.discountType === "percentage"
+        ? Math.min(subtotal * (Number(b.discountPercentage || 0) / 100), Number(b.maxDiscount) || Infinity)
+        : Number(b.originalPrice || 0)
       return discountB - discountA
     })
-  }, [availableCoupons, orderType, cart, pricing])
+  }, [availableCoupons, orderType, cart, pricing, userOrderCount])
   const [loadingCoupons, setLoadingCoupons] = useState(false)
   const [userOrderCount, setUserOrderCount] = useState(0)
 
@@ -378,11 +398,15 @@ export default function Cart() {
       !loadingCoupons
     ) {
       const topCoupon = filteredCoupons[0]
-      const isApplicable = subtotal >= (Number(topCoupon.minOrder) || 0)
+      const discountAmount = topCoupon.discountType === "percentage"
+        ? Math.min(subtotal * (Number(topCoupon.discountPercentage || 0) / 100), Number(topCoupon.maxDiscount) || Infinity)
+        : Number(topCoupon.originalPrice || 0)
+      const isApplicable = subtotal >= (Number(topCoupon.minOrder) || 0) && discountAmount > 0
       console.log("[AUTO-COUPON] Checking applicability:", {
         isApplicable,
         subtotal,
-        minOrder: topCoupon.minOrder
+        minOrder: topCoupon.minOrder,
+        discountAmount
       })
       
       if (isApplicable) {
@@ -1536,7 +1560,8 @@ export default function Cart() {
   }
 
   const handleApplyCoupon = async (coupon) => {
-    if (coupon?.customerGroup === "new" && userOrderCount > 0) {
+    const isFirstTimeOnly = coupon?.customerGroup === "new" || coupon?.customerGroup === "first-time"
+    if (isFirstTimeOnly && userOrderCount > 0) {
       toast.error("This coupon is only for first-time users")
       return
     }
@@ -1610,7 +1635,8 @@ export default function Cart() {
     )
 
     // If we know this is first-time only and user already ordered, block early.
-    if (matchedCoupon?.customerGroup === "new" && userOrderCount > 0) {
+    const isFirstTimeOnly = matchedCoupon?.customerGroup === "new" || matchedCoupon?.customerGroup === "first-time"
+    if (isFirstTimeOnly && userOrderCount > 0) {
       toast.error("This coupon is only for first-time users")
       return
     }
@@ -3937,7 +3963,7 @@ export default function Cart() {
 
                     {/* Savings text */}
                     <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-3 text-center leading-tight relative z-10">
-                      Save <span className="text-[#3B82F6] dark:text-blue-400 font-extrabold">{RUPEE_SYMBOL}{Math.round(bestCoupon.discount)}</span> on this order
+                      Save <span className="text-[#3B82F6] dark:text-blue-400 font-extrabold">{RUPEE_SYMBOL}{bestCouponDiscount}</span> on this order
                     </h3>
 
                     {/* Coupon code name */}
