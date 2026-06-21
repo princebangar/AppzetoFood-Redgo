@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useRef, memo, Component } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   checkOnboardingStatus,
@@ -1280,7 +1280,37 @@ const getInitialCountdown = (order) => {
   return Math.max(0, Math.min(240, remaining));
 }
 
-export default function OrdersMain() {
+class OrdersErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[OrdersMain] Render error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      const msg = this.state.error?.message || 'Unknown error';
+      return (
+        <div style={{ padding: 24, background: '#fff', minHeight: '100dvh' }}>
+          <h2 style={{ color: '#B80B3D', fontWeight: 700, marginBottom: 8 }}>Something went wrong</h2>
+          <p style={{ fontSize: 13, color: '#555', wordBreak: 'break-all' }}>{msg}</p>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+            style={{ marginTop: 16, padding: '10px 20px', background: '#B80B3D', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700 }}>
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function OrdersMainInner() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -1498,6 +1528,27 @@ export default function OrdersMain() {
   // Restaurant notifications hook for real-time orders
   const { newOrder, clearNewOrder, isConnected, stopSound, isMuted, setMuted } = useRestaurantNotifications();
   const lastOrderToastRef = useRef({ key: "", at: 0 });
+
+  // Mobile error logging — catches JS errors & promise rejections and shows as toast
+  useEffect(() => {
+    const handleError = (event) => {
+      const msg = event?.message || String(event);
+      const src = event?.filename ? `${event.filename}:${event.lineno}` : '';
+      toast.error(`[JS Error] ${msg}${src ? ` (${src})` : ''}`, { duration: 10000, id: 'js-error' });
+      console.error('[OrdersMain] window.onerror:', event);
+    };
+    const handleRejection = (event) => {
+      const reason = event?.reason?.message || event?.reason || 'Promise rejected';
+      toast.error(`[Async Error] ${reason}`, { duration: 10000, id: 'async-error' });
+      console.error('[OrdersMain] unhandledrejection:', event?.reason);
+    };
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, []);
 
   const rejectReasons = [
     "Restaurant is too busy",
@@ -3841,6 +3892,14 @@ export default function OrdersMain() {
       {/* Bottom Navigation - Sticky */}
       <BottomNavOrders />
     </div>
+  );
+}
+
+export default function OrdersMain() {
+  return (
+    <OrdersErrorBoundary>
+      <OrdersMainInner />
+    </OrdersErrorBoundary>
   );
 }
 
