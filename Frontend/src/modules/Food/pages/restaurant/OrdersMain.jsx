@@ -2248,27 +2248,6 @@ export default function OrdersMain() {
     setTakeawayOtpInput("");
   };
 
-  // iOS/Android safe scroll lock — preserves scroll position when popups open
-  useEffect(() => {
-    const isAnyOpen = showNewOrderPopup || showRejectPopup || showCancelPopup || showVerifyTakeawayPopup || isSheetOpen;
-    if (isAnyOpen) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-    } else {
-      const top = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      if (top) window.scrollTo(0, -parseInt(top, 10));
-    }
-    return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-    };
-  }, [showNewOrderPopup, showRejectPopup, showCancelPopup, showVerifyTakeawayPopup, isSheetOpen]);
 
   // Toggle mute
   const toggleMute = () => {
@@ -3604,7 +3583,7 @@ export default function OrdersMain() {
         {showVerifyTakeawayPopup && verifyingOrder && (
           <>
             <motion.div
-              className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+              className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -3858,7 +3837,6 @@ export default function OrdersMain() {
         )}
       </AnimatePresence>
 
-      {/* Scroll lock handled via useEffect below */}
 
       {/* Bottom Navigation - Sticky */}
       <BottomNavOrders />
