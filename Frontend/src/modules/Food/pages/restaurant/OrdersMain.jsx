@@ -1358,7 +1358,6 @@ function OrdersMainInner() {
   const [takeawayOtpInput, setTakeawayOtpInput] = useState("");
   const [isSubmittingVerifyTakeaway, setIsSubmittingVerifyTakeaway] = useState(false);
   const otpInputRef = useRef(null);
-  const focusTimerRef = useRef(null);
   const [isAcceptingOrder, setIsAcceptingOrder] = useState(false);
   const shownOrdersRef = useRef(new Set()); // Track orders already shown in popup
   const acceptSliderRef = useRef(null);
@@ -2265,11 +2264,6 @@ function OrdersMainInner() {
     setVerifyingOrder(order);
     setTakeawayOtpInput("");
     setShowVerifyTakeawayPopup(true);
-    // Only auto-focus on non-touch devices to prevent mobile viewport shift
-    if (!('ontouchstart' in window)) {
-      clearTimeout(focusTimerRef.current);
-      focusTimerRef.current = setTimeout(() => otpInputRef.current?.focus(), 350);
-    }
   };
 
   // Handle OTP verification and order completion
@@ -2298,7 +2292,6 @@ function OrdersMainInner() {
   };
 
   const handleVerifyTakeawayClose = () => {
-    clearTimeout(focusTimerRef.current);
     setShowVerifyTakeawayPopup(false);
     setVerifyingOrder(null);
     setTakeawayOtpInput("");
