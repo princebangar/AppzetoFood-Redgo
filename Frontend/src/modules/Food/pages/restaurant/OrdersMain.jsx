@@ -1290,17 +1290,30 @@ class OrdersErrorBoundary extends Component {
   }
   componentDidCatch(error, info) {
     console.error('[OrdersMain] Render error:', error, info);
+    this.setState({ stack: error?.stack || '', componentStack: info?.componentStack || '' });
   }
   render() {
     if (this.state.hasError) {
       const msg = this.state.error?.message || 'Unknown error';
+      const stack = this.state.stack || '';
+      const comp = this.state.componentStack || '';
       return (
-        <div style={{ padding: 24, background: '#fff', minHeight: '100dvh' }}>
-          <h2 style={{ color: '#B80B3D', fontWeight: 700, marginBottom: 8 }}>Something went wrong</h2>
-          <p style={{ fontSize: 13, color: '#555', wordBreak: 'break-all' }}>{msg}</p>
+        <div style={{ padding: 16, background: '#fff', minHeight: '100dvh', overflowY: 'auto' }}>
+          <h2 style={{ color: '#B80B3D', fontWeight: 700, marginBottom: 8, fontSize: 16 }}>Something went wrong</h2>
+          <p style={{ fontSize: 12, color: '#B80B3D', fontWeight: 600, marginBottom: 8, wordBreak: 'break-all' }}>{msg}</p>
+          {stack ? (
+            <pre style={{ fontSize: 9, color: '#555', background: '#f5f5f5', padding: 8, borderRadius: 6, overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginBottom: 8 }}>
+              {stack.slice(0, 800)}
+            </pre>
+          ) : null}
+          {comp ? (
+            <pre style={{ fontSize: 9, color: '#777', background: '#fafafa', padding: 8, borderRadius: 6, overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginBottom: 12 }}>
+              {comp.slice(0, 400)}
+            </pre>
+          ) : null}
           <button
-            onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
-            style={{ marginTop: 16, padding: '10px 20px', background: '#B80B3D', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700 }}>
+            onClick={() => { this.setState({ hasError: false, error: null, stack: '', componentStack: '' }); window.location.reload(); }}
+            style={{ padding: '10px 20px', background: '#B80B3D', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
             Reload Page
           </button>
         </div>
@@ -1529,29 +1542,17 @@ function OrdersMainInner() {
   const { newOrder, clearNewOrder, isConnected, stopSound, isMuted, setMuted } = useRestaurantNotifications();
   const lastOrderToastRef = useRef({ key: "", at: 0 });
 
-  // Mobile error logging — deferred via setTimeout to avoid firing during React render
+  // Mobile error logging — only async rejections (safe, fires outside render)
   useEffect(() => {
-    const handleError = (event) => {
-      const msg = event?.message || String(event);
-      const src = event?.filename ? `${event.filename}:${event.lineno}` : '';
-      console.error('[OrdersMain] window error:', event);
-      setTimeout(() => {
-        toast.error(`[JS Error] ${msg}${src ? ` (${src})` : ''}`, { duration: 10000, id: 'js-error' });
-      }, 0);
-    };
     const handleRejection = (event) => {
-      const reason = event?.reason?.message || event?.reason || 'Promise rejected';
+      const reason = event?.reason?.message || String(event?.reason || 'Promise rejected');
       console.error('[OrdersMain] unhandledrejection:', event?.reason);
       setTimeout(() => {
         toast.error(`[Async Error] ${reason}`, { duration: 10000, id: 'async-error' });
-      }, 0);
+      }, 100);
     };
-    window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
-    return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleRejection);
-    };
+    return () => window.removeEventListener('unhandledrejection', handleRejection);
   }, []);
 
   const rejectReasons = [
