@@ -1529,18 +1529,22 @@ function OrdersMainInner() {
   const { newOrder, clearNewOrder, isConnected, stopSound, isMuted, setMuted } = useRestaurantNotifications();
   const lastOrderToastRef = useRef({ key: "", at: 0 });
 
-  // Mobile error logging — catches JS errors & promise rejections and shows as toast
+  // Mobile error logging — deferred via setTimeout to avoid firing during React render
   useEffect(() => {
     const handleError = (event) => {
       const msg = event?.message || String(event);
       const src = event?.filename ? `${event.filename}:${event.lineno}` : '';
-      toast.error(`[JS Error] ${msg}${src ? ` (${src})` : ''}`, { duration: 10000, id: 'js-error' });
-      console.error('[OrdersMain] window.onerror:', event);
+      console.error('[OrdersMain] window error:', event);
+      setTimeout(() => {
+        toast.error(`[JS Error] ${msg}${src ? ` (${src})` : ''}`, { duration: 10000, id: 'js-error' });
+      }, 0);
     };
     const handleRejection = (event) => {
       const reason = event?.reason?.message || event?.reason || 'Promise rejected';
-      toast.error(`[Async Error] ${reason}`, { duration: 10000, id: 'async-error' });
       console.error('[OrdersMain] unhandledrejection:', event?.reason);
+      setTimeout(() => {
+        toast.error(`[Async Error] ${reason}`, { duration: 10000, id: 'async-error' });
+      }, 0);
     };
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
