@@ -65,16 +65,17 @@ export default function BottomNavOrders({ activeTabOverride }) {
 
   const tabs = useMemo(() => getOrdersTabs(basePath), [basePath])
 
-  const isInternalPage = pathname.includes("/create-offers") || pathname.includes("/help-centre/support")
-  if (isInternalPage || isKeyboardVisible) {
-    return null
-  }
-
+  // Must be before any early return to avoid hooks order violation
   const activeTab = useMemo(() => {
     if (activeTabOverride) return activeTabOverride;
     const match = findActiveTab(tabs, pathname)
     return match?.id || "orders"
   }, [tabs, pathname, activeTabOverride])
+
+  const isInternalPage = pathname.includes("/create-offers") || pathname.includes("/help-centre/support")
+  if (isInternalPage || isKeyboardVisible) {
+    return null
+  }
 
   const handleTabClick = (tab) => {
     if (tab.route && tab.route !== pathname) {
