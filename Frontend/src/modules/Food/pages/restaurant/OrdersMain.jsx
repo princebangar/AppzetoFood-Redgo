@@ -3628,22 +3628,14 @@ function OrdersMainInner() {
       </AnimatePresence>
 
       {/* Verify & Complete Takeaway OTP Popup */}
-      <AnimatePresence>
-        {showVerifyTakeawayPopup && verifyingOrder && (
-          <>
-            <motion.div
-              className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleVerifyTakeawayClose}>
-              <motion.div
-                className="w-[95%] max-w-sm bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-2xl overflow-hidden"
-                initial={{ scale: 0.85, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.85, opacity: 0, y: 20 }}
-                transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                onClick={(e) => e.stopPropagation()}>
+      {showVerifyTakeawayPopup && verifyingOrder && (
+        <>
+          <div
+            className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"
+            onClick={handleVerifyTakeawayClose}>
+            <div
+              className="w-[95%] max-w-sm bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}>
 
                 {/* Gradient Header */}
                 <div className="bg-gradient-to-br from-[#B80B3D] to-[#66001D] px-6 pt-6 pb-8 text-center relative overflow-hidden">
@@ -3728,11 +3720,10 @@ function OrdersMainInner() {
                   </button>
                 </div>
 
-              </motion.div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            </div>
+          </div>
+        </>
+      )}
 
 
       {/* Bottom Sheet for Order Details */}
