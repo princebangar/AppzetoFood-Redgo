@@ -69,7 +69,12 @@ export default function Under250() {
   const { location } = useLocation()
   const { zoneId, zoneStatus, isInService, isOutOfService } = useZone(location)
   const { showGlobalLoader, openLocationSelector } = useLocationSelector()
-  const { userProfile } = useProfile()
+  const { userProfile, setOrderType } = useProfile()
+
+  // Under 250 is delivery-only — force delivery mode on mount
+  useEffect(() => {
+    setOrderType('delivery')
+  }, [])
 
   const displayArea = useMemo(() => {
     let name = location?.area || "Select Location"

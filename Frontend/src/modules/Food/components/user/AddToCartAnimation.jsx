@@ -31,10 +31,12 @@ export default function AddToCartAnimation({
 }) {
   const { items, itemCount, total, lastAddEvent, lastRemoveEvent } = useCart();
   const { orderType } = useProfile();
-  const isTakeaway = orderType === 'takeaway';
+  const location = useLocation();
+  // Under 250 page always uses delivery mode — takeaway cart label should never show here
+  const isUnder250Page = location.pathname.startsWith('/food/user/under-250');
+  const isTakeaway = orderType === 'takeaway' && !isUnder250Page;
   // Navigate to the correct cart for the active mode
   const cartLinkTo = isTakeaway ? '/food/user/cart' : (linkTo || '/food/user/cart');
-  const location = useLocation();
   const navigate = useNavigate();
   const linkRef = useRef(null);
   const [removedProduct, setRemovedProduct] = useState(null);
