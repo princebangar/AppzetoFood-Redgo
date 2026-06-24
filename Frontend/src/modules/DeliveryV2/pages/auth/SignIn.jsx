@@ -52,6 +52,7 @@ export default function DeliverySignIn() {
   // they mount (focus transfer keeps the keyboard up on iOS).
   const focusKeeperRef = useRef(null)
   const keyboardPrimedRef = useRef(false)
+  const [instantAuthTransition, setInstantAuthTransition] = useState(false)
 
   const getBlockKey = (phoneStr) => {
     const clean = phoneStr?.replace(/\D/g, "") || ""
@@ -63,11 +64,24 @@ export default function DeliverySignIn() {
     return clean ? `delivery_resend_expires_at_${clean}` : "delivery_resend_expires_at"
   }
 
+  const resetPendingVerificationState = () => {
+    setPendingMessage("")
+    setIsRejected(false)
+    setRejectionReason("")
+  }
+
+  const handleBackToLogin = () => {
+    setInstantAuthTransition(true)
+    navigate("/food/delivery/login", { replace: true })
+  }
+
   // Handle route change transitions
   useEffect(() => {
     if (!isOtpStep) {
       setOtp(["", "", "", ""])
       setError("")
+      setShowNameInput(false)
+      resetPendingVerificationState()
       return
     }
 
@@ -114,6 +128,12 @@ export default function DeliverySignIn() {
       sessionStorage.setItem(resendKey, (Date.now() + (59 * 1000)).toString())
     }
   }, [isOtpStep, navigate, location.state])
+
+  useEffect(() => {
+    if (!instantAuthTransition || isOtpStep) return
+    const timer = window.setTimeout(() => setInstantAuthTransition(false), 0)
+    return () => window.clearTimeout(timer)
+  }, [instantAuthTransition, isOtpStep])
 
   // Timers
   useEffect(() => {
@@ -182,6 +202,7 @@ export default function DeliverySignIn() {
 
     try {
       clearModuleAuth("delivery")
+      resetPendingVerificationState()
       await deliveryAPI.sendOTP(fullPhone, "login")
 
       const authData = {
@@ -626,6 +647,12 @@ export default function DeliverySignIn() {
 
   const isOtpComplete = otp.every((digit) => digit !== "")
 
+  const showLoginStep = !isOtpStep || instantAuthTransition
+
+  const authStepTransition = instantAuthTransition
+    ? { duration: 0 }
+    : { duration: 0.3 }
+
   // When an input is focused the mobile soft-keyboard opens and shrinks the
   // viewport. Scroll the focused field into the centre of the remaining space
   // so the submit button / logo never get hidden behind the keyboard.
@@ -720,7 +747,7 @@ export default function DeliverySignIn() {
               Delivery Partner
             </h2>
             <div className="text-[13.5px] text-slate-600 dark:text-slate-350 font-['Outfit'] font-medium tracking-wide leading-relaxed max-w-[310px] text-center px-4 mt-3">
-              {!isOtpStep ? (
+              {showLoginStep ? (
                 "Enter your registered mobile number to start earning"
               ) : showNameInput ? (
                 "You're almost done! Please tell us your name to complete registration."
@@ -728,7 +755,7 @@ export default function DeliverySignIn() {
                 <div className="text-[13px] text-slate-500/90 dark:text-slate-400/90 font-['Outfit'] font-semibold tracking-[0.015em] leading-relaxed w-full max-w-none text-center mt-2 flex items-center justify-center gap-1.5 whitespace-nowrap">
                   <span>We've sent a code to {getPhoneNumber()}</span>
                   <button
-                    onClick={() => navigate("/food/delivery/login")}
+                    onClick={handleBackToLogin}
                     className="p-1.5 ml-1 bg-gradient-to-r from-[#0E4B9C] to-[#021024] hover:from-[#1157b5] hover:to-[#041630] rounded-[10px] text-white shadow-md shadow-[#0E4B9C]/20 transition-all hover:scale-105 active:scale-95"
                     aria-label="Edit phone number"
                   >
@@ -741,14 +768,13 @@ export default function DeliverySignIn() {
 
           <div className="relative">
             <AnimatePresence mode="wait">
-              {!isOtpStep ? (
-                // Step 1: Mobile Input Form
+              {showLoginStep ? (
                 <motion.form
                   key="phone-form"
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={instantAuthTransition ? false : { opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
+                  exit={instantAuthTransition ? undefined : { opacity: 0, x: 20 }}
+                  transition={authStepTransition}
                   onSubmit={handleSendOTP}
                   className="space-y-6"
                 >
@@ -785,10 +811,10 @@ export default function DeliverySignIn() {
                 // Step 2: OTP Verification & Sub-states Form
                 <motion.div
                   key="otp-form"
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={instantAuthTransition ? false : { opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
+                  exit={instantAuthTransition ? undefined : { opacity: 0, x: -20 }}
+                  transition={authStepTransition}
                   className="w-full flex flex-col"
                 >
                   <div className="relative">
@@ -834,7 +860,7 @@ export default function DeliverySignIn() {
                           
                           <button
                             type="button"
-                            onClick={() => navigate("/food/delivery/login", { replace: true })}
+                            onClick={handleBackToLogin}
                             className={`text-sm font-semibold hover:underline ${isRejected ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"}`}
                           >
                             Back to login

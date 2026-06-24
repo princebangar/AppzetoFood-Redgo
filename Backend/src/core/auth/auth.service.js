@@ -5,6 +5,7 @@ import { FoodAdmin } from "../admin/admin.model.js";
 import { AdminResetOtp } from "../admin/adminResetOtp.model.js";
 import { FoodRestaurant } from "../../modules/food/restaurant/models/restaurant.model.js";
 import { FoodDeliveryPartner } from "../../modules/food/delivery/models/deliveryPartner.model.js";
+import { findDeliveryPartnerByPhone } from "../../modules/food/delivery/services/delivery.service.js";
 import { FoodReferralSettings } from "../../modules/food/admin/models/referralSettings.model.js";
 import { FoodReferralLog } from "../../modules/food/admin/models/referralLog.model.js";
 import { createOrUpdateOtp, verifyOtp } from "../otp/otp.service.js";
@@ -547,31 +548,8 @@ export const requestDeliveryOtp = async (phone) => {
   return shouldExposeOtp ? { otp } : {};
 };
 
-const normalizePhoneForDelivery = (phone) => {
-  const digits = String(phone || "").replace(/\D/g, "");
-  return digits.slice(-10) || null;
-};
-
 export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform, confirmAction) => {
-  const normalized = normalizePhoneForDelivery(phone);
-  let existingPartner = null;
-  if (normalized) {
-    const matchingPartners = await FoodDeliveryPartner.find({
-      $or: [
-        { phone: normalized },
-        { phone: { $regex: new RegExp(normalized + "$") } },
-      ],
-    });
-
-    // Prioritize approved/pending over deleted
-    const statusPriority = { approved: 1, pending: 2, rejected: 3, deleted: 4 };
-    const sortedPartners = matchingPartners.sort((a, b) => {
-      const pA = statusPriority[a.status] || 99;
-      const pB = statusPriority[b.status] || 99;
-      return pA - pB;
-    });
-    existingPartner = sortedPartners[0] || null;
-  }
+  const existingPartner = await findDeliveryPartnerByPhone(phone);
 
   const isDeleted = existingPartner && existingPartner.status === "deleted";
   const preserveOtp = isDeleted && !confirmAction;
@@ -635,8 +613,9 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform, 
     }
   }
 
-  if (deliveryPartner.status && deliveryPartner.status !== "approved") {
-    const isRejected = deliveryPartner.status === "rejected";
+  const partnerStatus = deliveryPartner.status || "pending";
+  if (partnerStatus !== "approved") {
+    const isRejected = partnerStatus === "rejected";
     return {
       pendingApproval: true,
       isRejected,

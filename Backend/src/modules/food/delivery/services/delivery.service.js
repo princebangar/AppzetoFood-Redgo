@@ -8,6 +8,78 @@ import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
 
+export const normalizeDeliveryPhone = (phone) => {
+    const digits = String(phone || '').replace(/\D/g, '');
+    return digits.slice(-10) || null;
+};
+
+const escapeDeliveryPhoneRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const findDeliveryPartnerByPhone = async (phone) => {
+    const normalized = normalizeDeliveryPhone(phone);
+    if (!normalized) return null;
+
+    const candidates = Array.from(
+        new Set([normalized, `91${normalized}`, `+91${normalized}`, `0${normalized}`])
+    );
+    const suffixPattern = new RegExp(`${escapeDeliveryPhoneRegex(normalized)}$`);
+
+    const matchingPartners = await FoodDeliveryPartner.find({
+        $or: [
+            { phone: { $in: candidates } },
+            { phone: { $regex: suffixPattern } },
+        ],
+    });
+
+    const statusPriority = { approved: 1, pending: 2, rejected: 3, deleted: 4 };
+    return (
+        matchingPartners.sort((a, b) => {
+            const pA = statusPriority[a.status] || 99;
+            const pB = statusPriority[b.status] || 99;
+            return pA - pB;
+        })[0] || null
+    );
+};
+
+const formatDeliveryDuplicateKeyError = (err) => {
+    if (!err || err.code !== 11000) return null;
+
+    const keyPattern = err.keyPattern || {};
+    const keyValue = err.keyValue || {};
+
+    if (keyPattern.phone || keyValue.phone !== undefined) {
+        return 'Delivery partner with this phone number already exists';
+    }
+    if (keyPattern.vehicleNumber || keyValue.vehicleNumber !== undefined) {
+        return 'This vehicle number is already registered. Please use a different vehicle number.';
+    }
+    if (keyPattern.panNumber || keyValue.panNumber !== undefined) {
+        return 'This PAN number is already registered.';
+    }
+    if (keyPattern.aadharNumber || keyValue.aadharNumber !== undefined) {
+        return 'This Aadhar number is already registered.';
+    }
+    if (keyPattern.drivingLicenseNumber || keyValue.drivingLicenseNumber !== undefined) {
+        return 'This driving license number is already registered.';
+    }
+
+    return 'This account detail is already registered. Please check your information.';
+};
+
+const clearPartnerForReRegistration = async (existing) => {
+    if (!existing) return;
+
+    if (existing.status === 'rejected') {
+        await FoodDeliveryPartner.deleteOne({ _id: existing._id });
+        return;
+    }
+
+    if (existing.status === 'deleted') {
+        existing.phone = `${existing.phone}_deleted_${Date.now()}`;
+        await existing.save();
+    }
+};
+
 export const registerDeliveryPartner = async (payload, files) => {
     const { 
         name, phone, email, countryCode, address, city, state, 
@@ -15,14 +87,39 @@ export const registerDeliveryPartner = async (payload, files) => {
         fcmToken, platform 
     } = payload;
     const refRaw = typeof payload?.ref === 'string' ? String(payload.ref).trim() : '';
+    const normalizedPhone = normalizeDeliveryPhone(phone);
 
-    const existing = await FoodDeliveryPartner.findOne({ phone });
+    if (!normalizedPhone) {
+        throw new ValidationError('Valid phone number is required');
+    }
+
+    const existing = await findDeliveryPartnerByPhone(normalizedPhone);
     if (existing) {
-        if (existing.status !== 'rejected') {
-            throw new ValidationError('Delivery partner with this phone already exists');
+        if (existing.status === 'pending') {
+            throw new ValidationError(
+                'Registration with this phone is already submitted and pending admin approval. Please check Join Requests in admin panel.'
+            );
         }
-        // If rejected, delete the old record so they can start fresh with same phone
-        await FoodDeliveryPartner.deleteMany({ phone });
+        if (existing.status === 'approved') {
+            throw new ValidationError('Delivery partner with this phone number already exists. Please login instead.');
+        }
+        await clearPartnerForReRegistration(existing);
+    }
+
+    const normalizedVehicleNumber = vehicleNumber
+        ? String(vehicleNumber).trim().toUpperCase()
+        : undefined;
+
+    if (normalizedVehicleNumber) {
+        const existingVehicle = await FoodDeliveryPartner.findOne({
+            vehicleNumber: normalizedVehicleNumber,
+        }).select('_id phone status').lean();
+
+        if (existingVehicle) {
+            throw new ValidationError(
+                'This vehicle number is already registered. Please use a different vehicle number.'
+            );
+        }
     }
 
     const images = {};
@@ -43,23 +140,33 @@ export const registerDeliveryPartner = async (payload, files) => {
         );
     }
 
-    const partner = await FoodDeliveryPartner.create({
-        name,
-        phone,
-        email: email && String(email).trim() ? String(email).trim() : undefined,
-        countryCode,
-        address,
-        city,
-        state,
-        vehicleType,
-        vehicleName,
-        vehicleNumber,
-        drivingLicenseNumber,
-        panNumber,
-        aadharNumber,
-        status: 'pending',
-        ...images
-    });
+    let partner;
+
+    try {
+        partner = await FoodDeliveryPartner.create({
+            name,
+            phone: normalizedPhone,
+            email: email && String(email).trim() ? String(email).trim() : undefined,
+            countryCode,
+            address,
+            city,
+            state,
+            vehicleType,
+            vehicleName,
+            vehicleNumber: normalizedVehicleNumber,
+            drivingLicenseNumber,
+            panNumber,
+            aadharNumber,
+            status: 'pending',
+            ...images
+        });
+    } catch (err) {
+        const duplicateMessage = formatDeliveryDuplicateKeyError(err);
+        if (duplicateMessage) {
+            throw new ValidationError(duplicateMessage);
+        }
+        throw err;
+    }
 
     // Update FCM token if provided
     if (fcmToken) {

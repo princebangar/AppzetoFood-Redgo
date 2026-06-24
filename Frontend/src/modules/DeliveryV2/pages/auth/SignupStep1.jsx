@@ -242,9 +242,14 @@ export default function SignupStep1() {
           <button
             type="button"
             onClick={() => {
-              setFormData({
-                ...formData,
-                name: "Prince Bangar",
+              const existingDetails = JSON.parse(sessionStorage.getItem("deliverySignupDetails") || "{}")
+              const loginPhone =
+                String(formData.phone || existingDetails.phone || "")
+                  .replace(/\D/g, "")
+                  .slice(-10)
+
+              const dummyFields = {
+                name: formData.name?.trim() || "Prince Bangar",
                 email: "princeb@appzetofood.test",
                 address: "123 Appzeto Food Tower, Vijay Nagar",
                 city: "Indore",
@@ -255,30 +260,25 @@ export default function SignupStep1() {
                 drivingLicenseNumber: "MP1320110012345",
                 panNumber: "ABCDE1234F",
                 aadharNumber: "123456789012",
-                phone: "9098569621",
-                countryCode: "+91"
-              });
-              setErrors({});
-              sessionStorage.setItem("deliveryNeedsRegistration", "true");
-              // Also ensure basic details are in sessionStorage for Step 2
-              const existingDetails = JSON.parse(sessionStorage.getItem("deliverySignupDetails") || "{}");
-              sessionStorage.setItem("deliverySignupDetails", JSON.stringify({
-                ...existingDetails,
-                name: "Prince Bangar",
-                email: "princeb@appzetofood.test",
-                phone: "9876543210",
-                countryCode: "+91",
-                address: "123 Appzeto Food Tower, Vijay Nagar",
-                city: "Indore",
-                state: "Madhya Pradesh",
-                vehicleType: "bike",
-                vehicleName: "Honda Activa",
-                vehicleNumber: "MP13AB1234",
-                drivingLicenseNumber: "MP1320110012345",
-                panNumber: "ABCDE1234F",
-                aadharNumber: "123456789012"
-              }));
-              toast.success("Dummy data filled!");
+                countryCode: formData.countryCode || "+91",
+              }
+
+              setFormData((prev) => ({
+                ...prev,
+                ...dummyFields,
+                phone: loginPhone || prev.phone,
+              }))
+              setErrors({})
+              sessionStorage.setItem("deliveryNeedsRegistration", "true")
+              sessionStorage.setItem(
+                "deliverySignupDetails",
+                JSON.stringify({
+                  ...existingDetails,
+                  ...dummyFields,
+                  phone: loginPhone || existingDetails.phone || "",
+                }),
+              )
+              toast.success("Dummy data filled!")
             }}
             className="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-orange-100 transition-colors"
           >

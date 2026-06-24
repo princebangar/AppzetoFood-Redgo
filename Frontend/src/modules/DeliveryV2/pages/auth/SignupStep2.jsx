@@ -268,21 +268,29 @@ export default function SignupStep2() {
       formData.append("platform", platform);
     }
 
-    const isCompleteProfile = isDummyMode || sessionStorage.getItem("deliveryNeedsRegistration") === "true"
+    const hasDeliveryAuth =
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem("delivery_authenticated") === "true" &&
+      Boolean(localStorage.getItem("delivery_accessToken"))
+
+    const shouldRegister =
+      isDummyMode ||
+      sessionStorage.getItem("deliveryNeedsRegistration") === "true" ||
+      !hasDeliveryAuth
 
     setIsSubmitting(true)
 
     try {
-      // New number (OTP ke baad pehli baar): DB me abhi partner nahi hai,
-      // is case me register hi call karna hai (no auth token needed).
-      const response = isCompleteProfile
+      // New partners must use POST /register (no auth). completeProfile is only for
+      // an already-authenticated delivery account updating an existing profile.
+      const response = shouldRegister
         ? await deliveryAPI.register(formData)
         : await deliveryAPI.completeProfile(formData)
 
       if (response?.data?.success) {
         sessionStorage.removeItem("deliverySignupDetails")
         sessionStorage.removeItem("deliverySignupDocs")
-        if (isCompleteProfile) {
+        if (shouldRegister) {
           sessionStorage.removeItem("deliveryNeedsRegistration")
           toast.success("Registration successful. Please login with OTP.")
           setTimeout(() => navigate("/food/delivery/login", { replace: true }), 1500)
@@ -436,27 +444,6 @@ export default function SignupStep2() {
               });
               setIsDummyMode(true);
               sessionStorage.setItem("deliveryNeedsRegistration", "true");
-              
-              // Ensure basic details exist for the register call
-              const existingDetails = JSON.parse(sessionStorage.getItem("deliverySignupDetails") || "{}");
-              if (!existingDetails.phone) {
-                sessionStorage.setItem("deliverySignupDetails", JSON.stringify({
-                  ...existingDetails,
-                  name: "Prince Bangar",
-                  email: "princeb@appzetofood.test",
-                  phone: "9098569621",
-                  countryCode: "+91",
-                  address: "123 Appzeto Food Tower, Vijay Nagar",
-                  city: "Indore",
-                  state: "Madhya Pradesh",
-                  vehicleType: "bike",
-                  vehicleName: "Honda Activa",
-                  vehicleNumber: "MP13AB1234",
-                  drivingLicenseNumber: "MP1320110012345",
-                  panNumber: "ABCDE1234F",
-                  aadharNumber: "123456789012"
-                }));
-              }
               
               toast.success("Dummy documents added!");
             }}
